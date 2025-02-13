@@ -7,7 +7,14 @@ import lustre/effect
 import lustre/element
 import lustre/element/html
 import lustre/event
+import lustre/ui
 import lustre_http
+
+pub fn main() {
+  let app = lustre.application(init, update, view)
+
+  let assert Ok(_) = lustre.start(app, "#app", Nil)
+}
 
 pub type Cat {
   Cat(id: String, url: String)
@@ -17,14 +24,14 @@ pub type Model {
   Model(count: Int, cats: List(Cat))
 }
 
-pub type Msg {
+fn init(_flags) -> #(Model, effect.Effect(Msg)) {
+  #(Model(0, []), effect.none())
+}
+
+pub opaque type Msg {
   UserIncrementedCount
   UserDecrementedCount
   ApiReturnedCats(Result(List(Cat), lustre_http.HttpError))
-}
-
-fn init(_flags) -> #(Model, effect.Effect(Msg)) {
-  #(Model(0, []), effect.none())
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
@@ -60,30 +67,48 @@ fn get_cat() -> effect.Effect(Msg) {
 }
 
 pub fn view(model: Model) -> element.Element(Msg) {
+  let styles = [#("width", "100vw"), #("height", "100vh"), #("padding", "1rem")]
   let count = int.to_string(model.count)
 
-  html.div([], [
-    html.button([event.on_click(UserIncrementedCount)], [element.text("+")]),
-    element.text(count),
-    html.button([event.on_click(UserDecrementedCount)], [element.text("-")]),
-    element.keyed(
-      html.div([], _),
-      list.map(model.cats, fn(cat) {
-        #(
-          cat.id,
-          html.img([
-            attribute.src(cat.url),
-            attribute.width(400),
-            attribute.height(400),
-          ]),
-        )
-      }),
-    ),
-  ])
-}
-
-pub fn main() {
-  let app = lustre.application(init, update, view)
-
-  let assert Ok(_) = lustre.start(app, "#app", Nil)
+  ui.centre(
+    [attribute.style(styles)],
+    ui.stack([], [
+      ui.button([event.on_click(UserIncrementedCount)], [element.text("+")]),
+      html.p([attribute.style([#("text-align", "centre")])], [
+        element.text(count),
+      ]),
+      ui.button([event.on_click(UserDecrementedCount)], [element.text("-")]),
+      element.keyed(
+        ui.sequence([attribute.style([#("padding", "1rem")])], _),
+        list.map(model.cats, fn(cat) {
+          #(
+            cat.id,
+            html.img([
+              attribute.src(cat.url),
+              attribute.width(400),
+              attribute.height(400),
+            ]),
+          )
+        }),
+      ),
+    ]),
+  )
+  // html.div([], [
+  //   html.button([event.on_click(UserIncrementedCount)], [element.text("+")]),
+  //   element.text(count),
+  //   html.button([event.on_click(UserDecrementedCount)], [element.text("-")]),
+  //   element.keyed(
+  //     html.div([], _),
+  //     list.map(model.cats, fn(cat) {
+  //       #(
+  //         cat.id,
+  //         html.img([
+  //           attribute.src(cat.url),
+  //           attribute.width(400),
+  //           attribute.height(400),
+  //         ]),
+  //       )
+  //     }),
+  //   ),
+  // ])
 }
