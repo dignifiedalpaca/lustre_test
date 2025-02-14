@@ -1,0 +1,10 @@
+{
+  "name": "Gleam",
+  "build": {"dockerfile": "Dockerfile"},
+  "remoteUser": "root",
+  "customizations": {
+    "vscode": {
+      "extensions": ["gleam.gleam"]
+    }
+  }
+}
