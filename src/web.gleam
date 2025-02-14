@@ -21,7 +21,7 @@ pub type Cat {
 }
 
 pub type Model {
-  Model(count: Int, cats: List(Cat))
+  Model(cats: List(Cat))
 }
 
 fn init(_flags) -> #(Model, effect.Effect(Msg)) {
@@ -29,25 +29,25 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
 }
 
 pub opaque type Msg {
-  UserIncrementedCount
-  UserDecrementedCount
+  UserAddedCat
+  UserRemovedCat
   ApiReturnedCats(Result(List(Cat), lustre_http.HttpError))
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
   case msg {
-    UserIncrementedCount -> #(Model(..model, count: model.count + 1), get_cat())
-    UserDecrementedCount ->
-      case model.count {
-        0 -> #(model, effect.none())
-        _ -> #(
-          Model(count: model.count - 1, cats: list.drop(model.cats, 1)),
+    UserAddedCat -> #(model, get_cat())
+    UserRemovedCat ->
+      case model.cats {
+        [] -> #(model, effect.none())
+        [_, ..rest] -> #(
+          Model(cats: rest),
           effect.none(),
         )
       }
     ApiReturnedCats(Ok(api_cats)) -> {
       let assert [cat, ..] = api_cats
-      #(Model(..model, cats: [cat, ..model.cats]), effect.none())
+      #(Model(cats: [cat, ..model.cats]), effect.none())
     }
     ApiReturnedCats(Error(_)) -> #(model, effect.none())
   }
@@ -68,16 +68,16 @@ fn get_cat() -> effect.Effect(Msg) {
 
 pub fn view(model: Model) -> element.Element(Msg) {
   let styles = [#("width", "100vw"), #("height", "100vh"), #("padding", "1rem")]
-  let count = int.to_string(model.count)
+  let count = int.to_string(list.length(model.cats))
 
   ui.centre(
     [attribute.style(styles)],
     ui.stack([], [
-      ui.button([event.on_click(UserIncrementedCount)], [element.text("+")]),
+      ui.button([event.on_click(UserAddedCat)], [element.text("+")]),
       html.p([attribute.style([#("text-align", "centre")])], [
         element.text(count),
       ]),
-      ui.button([event.on_click(UserDecrementedCount)], [element.text("-")]),
+      ui.button([event.on_click(UserRemovedCat)], [element.text("-")]),
       element.keyed(
         ui.sequence([attribute.style([#("padding", "1rem")])], _),
         list.map(model.cats, fn(cat) {
@@ -93,22 +93,4 @@ pub fn view(model: Model) -> element.Element(Msg) {
       ),
     ]),
   )
-  // html.div([], [
-  //   html.button([event.on_click(UserIncrementedCount)], [element.text("+")]),
-  //   element.text(count),
-  //   html.button([event.on_click(UserDecrementedCount)], [element.text("-")]),
-  //   element.keyed(
-  //     html.div([], _),
-  //     list.map(model.cats, fn(cat) {
-  //       #(
-  //         cat.id,
-  //         html.img([
-  //           attribute.src(cat.url),
-  //           attribute.width(400),
-  //           attribute.height(400),
-  //         ]),
-  //       )
-  //     }),
-  //   ),
-  // ])
 }
